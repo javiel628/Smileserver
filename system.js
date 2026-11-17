@@ -62,10 +62,8 @@ const { handleAutoTyping } = require('./start/smileCmds/autotyping');
 const { handleAIChatbot } = require('./start/smileCmds/chatbot');
 
 // Default menu image URL (replaced local files)
-const DEFAULT_MENU_IMAGE = "https://i.ibb.co/2W0H9Jq/avatar-contact.png";
-
-// Official WhatsApp channel
-const CHANNEL_LINK = "https://whatsapp.com/channel/0029Vb794NKBadmdwkPN6i0B";
+const DEFAULT_MENU_IMAGE = "https://files.catbox.moe/uqr56d.jpeg";
+const MENU_CHANNEL_URL = "https://whatsapp.com/channel/0029Vb794NKBadmdwkPN6i0B";
 
 //Shazam
 const acr = new acrcloud({
@@ -702,53 +700,92 @@ const loadMenuPlugins = (directory) => {
                 case 'menu': {
                     try {
                         const startTime = performance.now();
-                        await m.reply("*Loading menu*...");
-                        const endTime = performance.now();
-                        const latensie = endTime - startTime;
 
-                        // Get owner name
                         const ownername = await db.get(botNumber, 'ownername', 'Not set');
                         const prefixz = prefix;
-                        const modeStatus = "online";
-                        const versions = `${global.versions || '1.0.0'}`;
+                        const modeStatus = 'online';
+                        const versions = String(global.versions || '1.0.0');
 
-                        // Load plugins
                         const pluginsDir = path.join(__dirname, 'Plugins');
                         const plugins = loadMenuPlugins(pluginsDir);
-
-                        // Generate menu text
                         const menulist = generateMenu(
                             plugins,
                             ownername,
                             prefixz,
                             modeStatus,
                             versions,
-                            latensie,
+                            performance.now() - startTime,
                             readmore
                         );
 
-                        // Send the menu with a clickable WhatsApp channel URL button
-                        await supreme.sendMessage(m.chat, {
-                            image: { url: DEFAULT_MENU_IMAGE },
-                            caption: menulist,
-                            footer: "亗 𝐒𝚳𝚰𝐋𝚵 𝚳𝐃 亗",
-                            templateButtons: [
-                                {
-                                    index: 1,
-                                    urlButton: {
-                                        displayText: "📢 JOIN OUR CHANNEL",
-                                        url: CHANNEL_LINK
-                                    }
+                        try {
+                            const uploadedMedia = await prepareWAMessageMedia(
+                                { image: { url: DEFAULT_MENU_IMAGE } },
+                                { upload: supreme.waUploadToServer }
+                            );
+
+                            const interactiveMessage = proto.Message.InteractiveMessage.create({
+                                body: { text: menulist },
+                                footer: { text: '亗 𝐒𝚳𝚰𝐋𝚵 𝚳𝐃 亗' },
+                                header: {
+                                    title: '𝐒𝚳𝚰𝐋𝚵 𝚳𝐃',
+                                    hasMediaAttachment: true,
+                                    imageMessage: uploadedMedia.imageMessage
+                                },
+                                nativeFlowMessage: {
+                                    buttons: [{
+                                        name: 'cta_url',
+                                        buttonParamsJson: JSON.stringify({
+                                            display_text: '📢 JOIN OUR CHANNEL',
+                                            url: MENU_CHANNEL_URL,
+                                            merchant_url: MENU_CHANNEL_URL
+                                        })
+                                    }]
                                 }
-                            ]
-                        }, { quoted: m });
+                            });
+
+                            const generatedMessage = generateWAMessageFromContent(
+                                m.chat,
+                                {
+                                    viewOnceMessage: {
+                                        message: {
+                                            messageContextInfo: {
+                                                deviceListMetadata: {},
+                                                deviceListMetadataVersion: 2
+                                            },
+                                            interactiveMessage
+                                        }
+                                    }
+                                },
+                                {
+                                    userJid: supreme.user.id,
+                                    quoted: m
+                                }
+                            );
+
+                            await supreme.relayMessage(
+                                m.chat,
+                                generatedMessage.message,
+                                { messageId: generatedMessage.key.id }
+                            );
+                        } catch (buttonError) {
+                            console.error('Menu interactive button failed; sending compatible menu fallback:', buttonError);
+                            await supreme.sendMessage(
+                                m.chat,
+                                {
+                                    image: { url: DEFAULT_MENU_IMAGE },
+                                    caption: `${menulist}\n\n📢 JOIN OUR WHATSAPP CHANNEL:\n${MENU_CHANNEL_URL}`
+                                },
+                                { quoted: m }
+                            );
+                        }
                     } catch (error) {
-                        console.error("Menu command error:", error);
+                        console.error('Menu command error:', error);
                         await m.reply(`❌ Failed to load menu: ${error.message}`);
                     }
                     break;
                 }
-                
+
                 case 'reloadplugins': {
                     if (!Access) return reply('Owner only command!');
                     try {
