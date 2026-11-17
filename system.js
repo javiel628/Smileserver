@@ -64,6 +64,9 @@ const { handleAIChatbot } = require('./start/smileCmds/chatbot');
 // Default menu image URL (replaced local files)
 const DEFAULT_MENU_IMAGE = "https://i.ibb.co/2W0H9Jq/avatar-contact.png";
 
+// Official WhatsApp channel
+const CHANNEL_LINK = "https://whatsapp.com/channel/0029Vb794NKBadmdwkPN6i0B";
+
 //Shazam
 const acr = new acrcloud({
     host: 'identify-eu-west-1.acrcloud.com',
@@ -697,31 +700,54 @@ const loadMenuPlugins = (directory) => {
         if (!result.found) {
             switch (command) {
                 case 'menu': {
-    const startTime = performance.now();
-    await m.reply("*Loading menu*...");
-    const endTime = performance.now();
-    const latensie = endTime - startTime;
-    
-    // Get ownername here
-    const ownername = await db.get(botNumber, 'ownername', 'Not set');
-    const prefixz = prefix;  
-    const modeStatus = "online";
-    const versions = `${global.versions}`; 
-    
-    // Load plugins
-    const pluginsDir = path.join(__dirname, 'Plugins'); 
-    const plugins = loadMenuPlugins(pluginsDir);
-    
-    // Generate menu text
-    const menulist = generateMenu(plugins, ownername, prefixz, modeStatus, versions, latensie, readmore);
-    
-    // Send menu with default image URL
-    await supreme.sendMessage(m.chat, {
-        image: { url: DEFAULT_MENU_IMAGE },
-        caption: menulist,
-    }, { quoted: m });
-    break;
-}
+                    try {
+                        const startTime = performance.now();
+                        await m.reply("*Loading menu*...");
+                        const endTime = performance.now();
+                        const latensie = endTime - startTime;
+
+                        // Get owner name
+                        const ownername = await db.get(botNumber, 'ownername', 'Not set');
+                        const prefixz = prefix;
+                        const modeStatus = "online";
+                        const versions = `${global.versions || '1.0.0'}`;
+
+                        // Load plugins
+                        const pluginsDir = path.join(__dirname, 'Plugins');
+                        const plugins = loadMenuPlugins(pluginsDir);
+
+                        // Generate menu text
+                        const menulist = generateMenu(
+                            plugins,
+                            ownername,
+                            prefixz,
+                            modeStatus,
+                            versions,
+                            latensie,
+                            readmore
+                        );
+
+                        // Send the menu with a clickable WhatsApp channel URL button
+                        await supreme.sendMessage(m.chat, {
+                            image: { url: DEFAULT_MENU_IMAGE },
+                            caption: menulist,
+                            footer: "亗 𝐒𝚳𝚰𝐋𝚵 𝚳𝐃 亗",
+                            templateButtons: [
+                                {
+                                    index: 1,
+                                    urlButton: {
+                                        displayText: "📢 JOIN OUR CHANNEL",
+                                        url: CHANNEL_LINK
+                                    }
+                                }
+                            ]
+                        }, { quoted: m });
+                    } catch (error) {
+                        console.error("Menu command error:", error);
+                        await m.reply(`❌ Failed to load menu: ${error.message}`);
+                    }
+                    break;
+                }
                 
                 case 'reloadplugins': {
                     if (!Access) return reply('Owner only command!');
