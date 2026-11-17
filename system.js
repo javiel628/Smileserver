@@ -615,44 +615,68 @@ const progressBar = (used, total, size = 6) => {
 const mode = await db.get(botNumber, 'mode', 'public');
 
 const generateMenu = (plugins, ownername, prefixz, modeStatus, versions, latensie, readmore) => {
+
+const generateMenu = (plugins, ownername, prefix, modeStatus, versions, latensie) => {
     const memoryUsage = process.memoryUsage();
-    const botUsedMemory = memoryUsage.heapUsed;
     const totalMemory = os.totalmem();
     const systemUsedMemory = totalMemory - os.freemem();
 
-    // Count total unique commands across all plugins
-    let totalCommands = 0;
     const uniqueCommands = new Set();
-    for (const category in plugins) {
-        plugins[category].forEach(plugin => {
-            if (plugin.command && plugin.command.length > 0) {
-                uniqueCommands.add(plugin.command[0]); 
-            }
-        });
-    }
-    totalCommands = uniqueCommands.size;
 
-    let menu = `┌─❖ *亗 𝐒𝚳𝚰𝐋𝚵 𝚳𝐃 亗* ❖─\n`;
-    menu += `├─• ᴜsᴇʀ: ${ownername}\n`;
-    menu += `├─• ʙᴏᴛ: ${global.botname}\n`;
-    menu += `├─• ᴍᴏᴅᴇ: ${mode === 'public' ? 'ᴘᴜʙʟɪᴄ' : 'ᴘʀɪᴠᴀᴛᴇ'}\n`;
-    menu += `├─• ᴘʀᴇғɪx: [ ${prefixz} ]\n`;
-    menu += `├─• ᴄᴍᴅs: ${totalCommands}+\n`;
-    menu += `├─• ᴠᴇʀsɪᴏɴ: ${versions}\n`;
-    menu += `├─• sᴘᴇᴇᴅ: ${latensie.toFixed(4)} ms\n`;
-    menu += `├─• 𝚁𝙰𝙼: ${progressBar(systemUsedMemory, totalMemory)}\n`;
-    menu += `└─• ᴅᴇᴠ:  𝐒𝚳𝚰𝐋𝚵 𝚳𝚯𝐃𝐙\n`;
-    menu += `${readmore}\n`;
-    
     for (const category in plugins) {
-        menu += `┏▦  *${category.toUpperCase()} MENU* ▦\n`;
         plugins[category].forEach(plugin => {
             if (plugin.command && plugin.command.length > 0) {
-                menu += `┃❖ ${plugin.command[0]}\n`;
+                uniqueCommands.add(plugin.command[0]);
             }
         });
-        menu += `┗▦\n\n`;
     }
+
+    const totalCmds = uniqueCommands.size;
+    const cleanBotName = global.botname || 'SMILE MODZ';
+
+    let menu = [
+        `╭═══〘 *亗 ${cleanBotName} 亗* 〙═══╮`,
+        '┃✫╭═─────────────────═╮',
+        `┃✬│ Dev     : 𝐒𝚳𝚰𝐋𝚵 𝚳𝚯𝐃𝐙`,
+        `┃✫│ User    : ${ownername}`,
+        `┃✬│ Prefix  : ${prefix || 'none'}`,
+        `┃✫│ Edition : PRIME`,
+        `┃✯│ Status  : ${modeStatus === 'public' ? 'PUBLIC' : 'PRIVATE'}`,
+        `┃✬│ Cmds    : ${totalCmds}`,
+        `┃✫│ Version : ${versions}`,
+        `┃✬│ Speed   : ${latensie.toFixed(4)} ms`,
+        `┃✫│ RAM     : ${progressBar(systemUsedMemory, totalMemory)}`,
+        '┃✫│═════════════════════',
+        `┃✬│ ${cleanBotName}`,
+        '┃✫│═════════════════════',
+        '╰══──────────────────══╯',
+        ''
+    ].join('\n');
+
+    // Automatically display every plugin category
+    for (const category in plugins) {
+        const commands = plugins[category]
+            .filter(plugin => plugin.command && plugin.command.length > 0);
+
+        if (!commands.length) continue;
+
+        menu += [
+            `●════ 〘 *${category.toUpperCase()} CATEGORY* 〙════●`,
+            '╭══───────◇───────══╮',
+            ...commands.map(plugin => `┃✫│ ${plugin.command[0]}`),
+            '╰══───────◇───────══╯',
+            ''
+        ].join('\n');
+    }
+
+    menu += [
+        '╭═══〘 *THANK YOU FOR USING* 〙═══╮',
+        '┃',
+        '┃  么 *𝐒𝚳𝚰𝐋𝚵 𝐌𝚯𝐃𝐙* 么',
+        '┃',
+        '╰══════════════════════╯'
+    ].join('\n');
+
     return menu;
 };
 
